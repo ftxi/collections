@@ -2,10 +2,6 @@
 # -*- coding:utf-8 -*-
 import re
 
-SYNTAX = 0
-VALUE = 1
-trivil_count = 0
-
 def parse(s):
     l = re.sub(r'\s+', ', ', (' '+s.lower()+' ').replace('(', '[').replace(')', ']'))[2:-2]
     return eval(re.sub(r'(?P<symbol>[\w#%\\/^*+_\|~<>?!:-]+)', lambda m : '"%s"' % m.group('symbol'), l))
@@ -29,78 +25,52 @@ def atom(s):
 def eq(s, t):
     return s == t
 
-def cond(l):
+def cond(l, s):
     for [p, e] in cdr(l):
         if eval_(p):
             return eval_(e)
+        
+class lambda_object:
+    count = 0
+    def __init__(self, l, d):
+        self.dic = d
+        self.li = l[1]
+        self.ex = l[2]
+        lambda_object.count += 1
+        self.serial = lambda_object.count
+    
+    def __call__(self, *args):
+        for i in range(len(self.li)):
+            self.dic[self.li[i]] = args[i]
+        return eval_(self.ex, self.dic)
+    
+    def __str__(self):
+        return '<COMPOND-PROCEDURE-#%d>' % self.serial
+    
+    __repr__ = __str__
 
-def _assoc(li, dict):
-    for i in range(len(li)):
-        if atom(li[i]):
-            if li[i] in dict:
-                li[i] = ['quote', dict[li[i]]]
-        elif li[0] != 'quote':
-            _assoc(li[i], dict)
+def label(l, d):
+    d[l[1]] = eval_(l[2])
 
-def lambda_(l):
-    def ret(*args):
-        dict = {'':''}
-        for i, key in enumerate(l[1]):
-            dict[key] = args[i]
-        _assoc(l[2], dict)
-        return eval_(l[2])
-    global trivil_count
-    trivil_count += 1
-    ret.__name__ = 'COMPOND-PROCEDURE-#%d' % trivil_count
-    return ret  
-
-def label(l):
-    symbol_s[l[1]] = l[0]
-    symbol_s[l[1]] = eval_(l[2])
-
-def quote(l):
+def quote(l, d):
     return l[1]
 
-def eval_(l):
+symbol_s = {'cons':cons, 'car':car, 'cdr':cdr, 'atom?':atom, 'eq?':eq, '#t':True, '#f':False}
+syntax_s = {'cond':cond, 'lambda':lambda_object, 'quote':quote, 'label':label}
+
+def eval_(l, s=symbol_s):
     print 'code =>', l
     if atom(l):
         return symbol_s[l]
-    if not atom(l[0]):
-        l[0] = eval_(l[0])
     if l[0] in syntax_s:
-        return syntax_s[l[0]](l)
+        return syntax_s[l[0]](l, s)
     else:
-        for i in range(len(l))[1:]:
-            l[i] = eval_(l[i])
-        print 'sval =>', l
-        if isinstance(l[0], str):
-            l[0] = symbol_s[l[0]]
-        return l[0](*l[1:])
-
-symbol_s = {'cons':cons, 'car':car, 'cdr':cdr, 'atom?':atom, 'eq?':eq, '#t':True, '#f':False}
-syntax_s = {'cond':cond, 'lambda':lambda_, 'quote':quote, 'label':label}
-
-
-'''
-(cdr ((lambda (x)
-  (cons x
-        (cons x
-              (quote ())))) (quote (once twice))))
-'''
+        operator = eval_(l[0], s)
+        operands = map(lambda e: eval_(e,s), l[1:])
+        print 'sval =>', operator, '<<', operands
+        return operator(*operands)
 
 code = '''
-(LABEL not
-  (lambda (s)
-    (cond
-      (s #f)
-      (#t #t))))
-'''
-'''
-(cons (quote apple)
-  (cons (quote banana)
-    (cdr (quote (orange pineapple)))))
-'''
-'''
 (label ff
   (lambda (s)
     (cond
@@ -108,9 +78,7 @@ code = '''
       (#t (ff (car s))))))
 '''
 
-#print parse(code)
-#print _inside('foo', parse(code))
 print eval_(parse(code))
 print symbol_s
 
-print eval_(parse("(not #f)"))
+print eval_(parse("(ff (quote (((a b) c))))"))
