@@ -23,5 +23,7 @@ function create_image(mvp::Matrix)
 end
 
 function draw()
-
+    for m in models
+        
+    end
 end
