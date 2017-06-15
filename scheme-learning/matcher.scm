@@ -5,15 +5,14 @@
        (not (null? x))))
 
 (define deriv-rules
-  '(
-    ((dd (?c c) (?v v)) 0)
-    ((dd (?v v) (?v v)) 1)
-    ((dd (?v u) (?v v)) 0)
-    ((dd (+ (? x1) (? x2)) (?v v))
-     (+ (dd (: x1) (: v)) (dd (: x2) (: v))))
-    ((dd (* (? x1) (? x2)) (?v v))
-     (+ (* (dd (: x1) (: v)) (: x2))
-        (* (dd (: x2) (: v)) (: x1))))))
+  '(((diff (?c c) (?v v)) 0)
+    ((diff (?v v) (?v v)) 1)
+    ((diff (?v u) (?v v)) 0)
+    ((diff (+ (? x1) (? x2)) (?v v))
+     (+ (diff (: x1) (: v)) (diff (: x2) (: v))))
+    ((diff (* (? x1) (? x2)) (?v v))
+     (+ (* (diff (: x1) (: v)) (: x2))
+        (* (diff (: x2) (: v)) (: x1))))))
 
 #|
 (define algebra-rules
@@ -57,7 +56,7 @@
       ((atom? s) s)
       ((null? s) '())
       ((skeleton-evaluation? s)
-       (skeleton-evaluate (eval-exp s) dict))
+       (skeleton-evaluate (cadr s) dict))
       (else (cons (sub-instantiate (car s))
                   (sub-instantiate (cdr s))))))
   (sub-instantiate skeleton))
@@ -88,9 +87,6 @@
 
 (define (skeleton-evaluation? s)
   (eq? (car s) ':))
-
-(define (eval-exp s)
-  (cadr s))
 
 (define (skeleton-evaluate s dict)
   (if (atom? s)
