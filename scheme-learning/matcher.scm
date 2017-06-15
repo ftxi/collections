@@ -55,15 +55,20 @@
   (define (sub-instantiate s)
     (cond
       ((atom? s) s)
+      ((null? s) '())
       ((skeleton-evaluation? s)
-       (skeleton-evaluate s dict))
+       (skeleton-evaluate (eval-exp s) dict))
       (else (cons (sub-instantiate (car s))
                   (sub-instantiate (cdr s))))))
   (sub-instantiate skeleton))
 
 (define (extend-dict pat exp dict)
-  (cons (cons (cadr pat) exp)
-        dict))
+  (let ((name (cadr pat)))
+    (let ((v (assq name dict)))
+      (cond ((not v)
+             (cons (cons name exp) dict))
+            ((equal? (cdr v) exp) dict)
+            (else 'failed)))))
 
 (define (arbitary-constant? pat)
   (eq? (car pat) '?c))
@@ -84,5 +89,18 @@
 (define (skeleton-evaluation? s)
   (eq? (car s) ':))
 
+(define (eval-exp s)
+  (cadr s))
+
 (define (skeleton-evaluate s dict)
-  (cdr (assoc s dict)))
+  (if (atom? s)
+      (lookup s dict)
+      'this-behavior-is-not-defined-yet))
+                  
+(define (lookup s dict)
+  (let ((t (assq s dict)))
+    (if t
+        (cdr t)
+        s)))
+
+
