@@ -56,8 +56,8 @@
   (let ((name (cadr pat)))
     (let ((v (assq name dict)))
       (cond ((not v)
-             (cons (cons name exp) dict))
-            ((equal? (cdr v) exp) dict)
+             (cons (list name exp) dict))
+            ((equal? (cadr v) exp) dict)
             (else 'failed)))))
 
 (define (simplifier the-rules)
@@ -74,10 +74,20 @@
                              '())))
             (if (eq? dict 'failed)
                 (scan (cdr rules))
-                (simplify-exp
-                 (instantiate
-                     (skeleton-of (car rules))
-                     dict))))))
+                (begin
+                 (write exp)
+                 (newline)
+                 (display "|> ")
+                 (write (caar rules))
+                 (newline)
+                 (display "-> ")
+                 (write (cadar rules))
+                 (newline)
+                 (newline)
+                 (simplify-exp
+                  (instantiate
+                      (skeleton-of (car rules))
+                    dict)))))))
     (scan the-rules))
   simplify-exp)
 
@@ -109,12 +119,20 @@
 (define (skeleton-evaluate s dict)
   (if (atom? s)
       (lookup s dict)
-      'this-behavior-is-not-defined-yet))
-                  
+      (eval
+       `(let ,(map (lambda (s)
+                     (if (constant? (cadr s))
+                         s
+                         (list (car s)
+                               (list 'quote
+                                     (cdr s)))))
+                   dict)
+          ,s))))
+
 (define (lookup s dict)
   (let ((t (assq s dict)))
     (if t
-        (cdr t)
+        (cadr t)
         s)))
 
 (define (pattern-of rule)
@@ -137,13 +155,43 @@
         (* (diff (: x2) (: v)) (: x1))))))
 
 (define algebra-rules
-  '(((+ (?p e) (?a a))
+  '(((+ (?c c1) (?c c2)) (: (+ c1 c2)))
+    ((* (?c c1) (?c c2)) (: (* c1 c2)))
+    ((expt (?c c1) (?c c2)) (: (expt c1 c2)))
+    ((+ (?c c1) (+ (?c c2) (? e)))
+     (+ (: (+ c1 c2)) (: e)))
+    ((* (?c c1) (* (?c c2) (? e)))
+     (* (: (* c1 c2)) (: e)))
+    ((+ (? e) (? e)) (* 2 (: e)))
+    ((+ (? e) (* (?c c) (? e)))
+     (* (: (+ c 1)) (: e)))
+    ((* (? e) (? e)) (expt (: e) 2))
+    ((* (? e) (* (?c c) (? e)))
+     (* (: (+ c 1)) (? e)))
+    ;;; ^^ constants
+    ((+ (?p e) (?a a))
      (+ (: a) (: e)))
     ((* (?p e) (?a a))
      (* (: a) (: e)))
+    ((+ (?v v) (?c c))
+     (+ (: c) (: v)))
+    ((* (?v v) (?c c))
+     (* (: c) (: v)))
+    ((+ (+ (? a) (? b)) (? c))
+     (+ (: a) (+ (: b) (: c))))
+    ((* (* (? a) (? b)) (? c))
+     (* (: a) (* (: b) (: c))))
+    ((+ (?p e1) (+ (?c c) (? e2)))
+     (+ (: c) (+ (: e2) (: e1))))
+    ;;; ^^ reversing
     ((+ 0 (? e)) (: e))
     ((* 1 (? e)) (: e))
     ((* 0 (? e)) 0)
+    ((expt (expt (? e) (? e1)) (? e2))
+     (expt (: e) (* (: e1) (: e2))))
+    ((* (expt (? e) (? e1))
+        (expt (? e) (? e2)))
+     (expt (: e) (+ (: e1) (: e2))))
     ((* (? a) (+ (? b) (? c)))
      (+ (* (: a) (: b)) (* (: a) (: c))))))
 
