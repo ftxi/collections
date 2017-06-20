@@ -124,11 +124,9 @@
       (lookup s dict)
       (eval
        `(let ,(map (lambda (s)
-                     (if (constant? (cadr s))
-                         s
-                         (list (car s)
-                               (list 'quote
-                                     (cdr s)))))
+                     (list (car s)
+                           (list 'quote
+                                 (cadr s))))
                    dict)
           ,s))))
 
