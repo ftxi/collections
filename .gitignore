@@ -2,6 +2,7 @@
 #python
 
 *.py[coz]
+.ipynb_checkpoints
 
 #tempfile
 
