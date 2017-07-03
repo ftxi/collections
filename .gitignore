@@ -1,10 +1,15 @@
 
-#python
+## python
 
 *.py[coz]
 .ipynb_checkpoints
 
-#tempfile
+## tempfile
 
 \#*\#
 *~
+
+## drafts
+## --drafts not ready to be seen:
+
+_*/
