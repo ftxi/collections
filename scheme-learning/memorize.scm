@@ -11,18 +11,25 @@
 	(lambda (key val)
 	  (let ((s (list (list key val))))
 	    (set-cdr! s (cdr table))
-	    (set-cdr! table s)))))
+	    (set-cdr! table s))))
+       (contents
+        (lambda ()
+          (cdr table))))
     (lambda (message)
       (cond
-       ((eq? 'lookup message) lookup)
-       ((eq? 'insert! message) insert!)
-       #|(else (error "Bad message: " message))|#))))
+        ((eq? 'contents message) contents)
+        ((eq? 'lookup message) lookup)
+        ((eq? 'insert! message) insert!)
+        #|(else (error "Bad message: " message))|#))))
 
 (define (lookup key table)
   ((table 'lookup) key))
 
 (define (insert! key val table)
   ((table 'insert!) key val))
+
+(define (content-of table)
+  ((table 'contents)))
 
 (define (memorize f)
   (let ((table (make-table)))
@@ -31,6 +38,22 @@
           (let ((v (f x)))
             (insert! x v table)
             v)))))
+
+#|
+
+(define-syntax define-method
+  (syntax-rules ()
+    ((define-method method-name)
+     (define method-name
+       (lambda arguments
+         (((car arguments) (quote method-name)) (cdr arguments)))))
+    ((define-method method-name ...)
+     (define method-name
+       (lambda arguments
+         (((car arguments) (quote method-name)) (cdr arguments))))
+     (define-method ...))))
+
+|#
 
 ;; --------------------------
 
