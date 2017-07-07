@@ -1,16 +1,11 @@
 #lang r5rs
 
-;; (load "memorize.scm")
-
-(define (empty-value? v)
-  (eq? v 'empty-value))
-
 (define (make-connector)
   (let ((value 'empty-value)
         (contraints '()))
     (define (add-contraint! c)
       (set! contraints
-            (cons c (contraints))))
+            (cons c contraints)))
     (define (set-value! new-value)
       (cond
         ((equal? value new-value) 'done)
@@ -157,14 +152,21 @@
                 (display " "))
               s)))
 
+(define (probe name connector)
+  (define (avalible?)
+    #f)
+  (define (update)
+    (display name)
+    (display #\space)
+    (display (get-value connector))
+    (newline))
+  (define (dispatch m)
+    (cond
+      ((eq? m 'avalible?) avalible?)
+      ((eq? m 'update) update)
+      (else (error "unknown message" m))))
+  (add-contraint! dispatch connector))
 ;; --------------------------------------
-
-
-(define C (make-connector))
-(define F (make-connector))
-(celsius-fahrenheit-converter C F)
-(probe "Celsius temprature:" C)
-(probe "Fahrenheit temprature:" F)
 
 (define (celsius-fahrenheit-converter c f)
   (let ((u (make-connector))
@@ -179,3 +181,11 @@
     (constant 5 x)
     (constant 32 y)
     'okay))
+
+(define C (make-connector))
+(define F (make-connector))
+(celsius-fahrenheit-converter C F)
+(probe "Celsius temprature:" C)
+(probe "Fahrenheit temprature:" F)
+
+
