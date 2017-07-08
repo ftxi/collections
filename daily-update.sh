@@ -7,7 +7,7 @@ then
     exit
 fi
 
-git status | less
+git status
 echo
 echo "proceed change? [y/n]"
 
