@@ -13,10 +13,10 @@ echo "proceed change? [y/n]"
 
 read choice
 
-if (( choice == "y" ))
+if [ $choice == "y" ]
 then
     current=`date +%y/%m/%d`
-    if (( `cat .last-update` == current ))
+    if [ `cat .last-update` == current ]
     then
 	current="$(current)'"
     fi
@@ -25,7 +25,7 @@ then
     git commit -m "daily-update-$current"
     git push origin master
     echo "done."
-elif (( choice == "n" ))
+elif [ $choice == "n" ]
 then
     echo "done."
 else
