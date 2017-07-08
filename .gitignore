@@ -9,8 +9,12 @@
 \#*\#
 *~
 
+## c/c++
+*.o
+*.out 
+
 ## drafts
-## --drafts not ready to be seen:
+#  --drafts not ready to be seen:
 
 _*
 _*/

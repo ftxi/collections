@@ -5,19 +5,17 @@
 
 #include <stdio.h>
 
-void print_dec_to_m(int n, int m);
+int gcd(int, int);
 
 int main(int argc, const char *argv[])
 {
-    int n, m;
-    scanf("%d %d", &n, &m);
-    print_dec_to_m(n, m);
-    puts("");
+    int m, n;
+    scanf("%d %d",&m, &n);
+    printf("%d\n", gcd(m, n));
     return 0;
 }
 
-void print_dec_to_m(int n, int m)
+int gcd(int a, int b)
 {
-    n > 0 && (print_dec_to_m(n/m, m), printf("%X", n%m));
+    return b == 0 ? a : gcd(b, a%b);
 }
-
