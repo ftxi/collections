@@ -1,37 +1,43 @@
 ///////////////////////////////////////////////////////
-//  Created by sclereid on 2017/7/9.                 //
+//  Created by sclereid on 2017/7/8.                 //
 //  Copyright © 2017 sclereid. All rights reserved.  //
 ///////////////////////////////////////////////////////
 
 #include <stdio.h>
 #include <math.h>
 
-typedef char boolean;
-
-boolean foo, bar;
-
-int n, v, a[105];
+int n, a[105], b[105];
 
 void swap_i(int *, int *);
 void qsort_(int low, int high);
-int search(int k, int remain);
 
 int main(int argc, const char *argv[])
 {
-    int i, m, tmp;
-    scanf("%d", &v);
+    int i, current, contracts;
     scanf("%d", &n);
     for(i = 0; i < n; i++)
-        scanf("%d", a+i);
-    qsort_(0, n-1);
-    m = v;
-    for(i = 0; i < n; i++)
     {
-        tmp = search(i, v);
-        if(tmp >= 0 && tmp < m)
-            m = tmp;
+        scanf("%d %d", a+i, b+i);
+        if(a[i] > b[i])
+            swap_i(a+i, b+i);
     }
-    printf("%d\n", m);
+    qsort_(0, n-1);
+    current = b[0];
+    contracts = 1;
+    for(i = 0; i < n; i++)
+        printf("%d %d\n", a[i], b[i]);
+    puts("---------");
+    printf("%d %d\n", a[0], b[0]);
+    for(i = 1; i < n; i++)
+    {
+        if(a[i] >= current)
+        {
+            contracts++;
+            current = b[i];
+            printf("%d %d\n", a[i], b[i]);
+        }
+    }
+    printf("%d\n", contracts);
     return 0;
 }
 
@@ -47,31 +53,20 @@ void qsort_(int low, int high)
     if(low<high)
     {
         int i, j, x;
-        x = a[high];
+        x = b[high];
         i = low-1;
         for(j = low; j < high; j++)
         {
-            if(a[j] < x)
+            if(b[j] < x)
             {
                 i++;
                 swap_i(a+i, a+j);
+                swap_i(b+i, b+j);
             }
         }
         swap_i(a+i+1, a+high);
+        swap_i(b+i+1, b+high);
         qsort_(low, i);
         qsort_(i+2, high);
     }
-}
-
-int search(int k, int remain)
-{
-    int i;
-    int u = remain - a[k], m = remain, tmp;
-    for(i = 0; i < k; i++)
-    {
-        tmp = search(i, u);
-        if(tmp >= 0 && tmp < m)
-            m = tmp;
-    }
-    return m;
 }
