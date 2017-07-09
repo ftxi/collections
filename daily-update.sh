@@ -22,6 +22,7 @@ then
     fi
     echo $current > .last-update
     git add *
+    git add .last-update
     git commit -m "daily-update-$current"
     git push origin master
     echo "done."
