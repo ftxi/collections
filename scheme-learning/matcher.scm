@@ -1,8 +1,12 @@
-#lang racket
+#lang scheme
 
 (define (atom? x)
   (and (not (pair? x))
        (not (null? x))))
+
+(define (shows . s)
+  (for-each display s)
+  (newline))
 
 (define (simplify-machine material)
   (let ((predicates (append (car material)
@@ -26,17 +30,12 @@
                                   '())))
                       (cond
                         ((eq? dict 'failed)
+                         ;; (shows "tried " (pattern-of (car rules)) " on " exp " whereas " 'failed)
                          (scan (cdr rules)))
                         (else
-                         (write exp)
-                         (newline)
-                         (display "|> ")
-                         (write (caar rules))
-                         (newline)
-                         (display "-> ")
-                         (write (cadar rules))
-                         (newline)
-                         (newline)
+                         (shows exp #\newline
+                                "|> " (pattern-of (car rules)) #\newline
+                                "-> " (skeleton-of (car rules)) #\newline)
                          (simplify-exp
                           (instantiate
                               (skeleton-of (car rules))
@@ -57,10 +56,10 @@
            (one-of-these-predicates?
             (lambda (pat)
               (assq (car pat) predicates)))
-           (the-predicate-yields-true
-            (lambda (pat)
-              (apply (cadr (assq (car pat) predicates))
-                     (cdr pat)))))
+           (the-predicate-yields-true?
+            (lambda (pat exp)
+              ((cadr (assq (car pat) predicates))
+               exp))))
         (cond
           ((eq? dict 'failed) 'failed)
           ((atom? pat)
@@ -74,7 +73,7 @@
           ((null? pat) 'failed)
           ((null? exp) 'failed)
           ((one-of-these-predicates? pat)
-           (if (the-predicate-yields-true pat)
+           (if (the-predicate-yields-true? pat exp)
                (extend-dict pat exp dict)
                'failed))
           ((arbitary-expression? pat)
@@ -131,27 +130,9 @@
 
 ;; --------------------------
 
-(define derivative-rules
-  '(((diff (?c c) (?v v)) 0)
-    ((diff (?v v) (?v v)) 1)
-    ((diff (?v u) (?v v)) 0)
-    ((diff (+ (? x1) (? x2)) (?v v))
-     (+ (diff (: x1) (: v)) (diff (: x2) (: v))))
-    ((diff (expt (? u) (? n)) (?v v))
-     (* (: n)
-        (* (expt (: u) (- (: n) 1))
-           (diff (: u) (: v)))))
-    ((diff (* (? x1) (? x2)) (?v v))
-     (+ (* (diff (: x1) (: v)) (: x2))
-        (* (diff (: x2) (: v)) (: x1))))))
-
 (define algebra-rules
   '(((+ (?c c1) (?c c2)) (: (+ c1 c2)))
     ((* (?c c1) (?c c2)) (: (* c1 c2)))
-    ((- (?c c)) (: (- c)))
-    ((expt (?c c1) (?c c2)) (: (expt c1 c2)))
-    ((* (? e) (expt (? e) (? k)))
-     (expt (: e) (+ 1 (: k))))
     ((+ (?c c1) (+ (?c c2) (? e)))
      (+ (: (+ c1 c2)) (: e)))
     ((* (?c c1) (* (?c c2) (? e)))
@@ -159,7 +140,6 @@
     ((+ (? e) (? e)) (* 2 (: e)))
     ((+ (? e) (* (?c c) (? e)))
      (* (: (+ c 1)) (: e)))
-    ((* (? e) (? e)) (expt (: e) 2))
     ((* (? e) (* (?c c) (? e)))
      (* (: (+ c 1)) (? e)))
     ;;; ^^ constants
@@ -177,19 +157,10 @@
      (* (: a) (* (: b) (: c))))
     ((+ (?p e1) (+ (?c c) (? e2)))
      (+ (: c) (+ (: e2) (: e1))))
-    ((- (? e1) (? e2))
-     (+ (: e1) (- (: e2))))
     ;;; ^^ reversing
     ((+ 0 (? e)) (: e))
     ((* 1 (? e)) (: e))
     ((* 0 (? e)) 0)
-    ((expt (? e) 0) 1)
-    ((expt (? e) 1) (: e))
-    ((expt (expt (? e) (? e1)) (? e2))
-     (expt (: e) (* (: e1) (: e2))))
-    ((* (expt (? e) (? e1))
-        (expt (? e) (? e2)))
-     (expt (: e) (+ (: e1) (: e2))))
     ((* (? a) (+ (? b) (? c)))
      (+ (* (: a) (: b)) (* (: a) (: c))))))
 
@@ -198,5 +169,4 @@
    (list
     `((?v ,symbol?)
       (?c ,number?))
-    (append algebra-rules
-            derivative-rules))))
+    algebra-rules)))
