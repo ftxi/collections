@@ -1,4 +1,3 @@
-#lang scheme
 
 (define (atom? x)
   (and (not (pair? x))
@@ -9,10 +8,10 @@
   (newline))
 
 (define (simplify-machine material)
-  (let ((predicates (append (car material)
-                          `((?a ,atom?)
-                            (?p ,pair?))))
-        (rules (cadr material)))
+  (let ((the-predicates `(,@(car material)
+                      (?a ,atom?)
+                      (?p ,pair?)))
+        (the-rules (cadr material)))
     (define (simplifier)
       (letrec
           ((simplify-exp
@@ -30,23 +29,23 @@
                                   '())))
                       (cond
                         ((eq? dict 'failed)
-                         ;; (shows "tried " (pattern-of (car rules)) " on " exp " whereas " 'failed)
+                         ;; (shows "tried " (pattern-of (car rules)) " on " exp " whereas " dict)
                          (scan (cdr rules)))
                         (else
-                         (shows exp #\newline
-                                "|> " (pattern-of (car rules)) #\newline
-                                "-> " (skeleton-of (car rules)) #\newline)
-                         (simplify-exp
-                          (instantiate
-                              (skeleton-of (car rules))
-                            dict)))))))
-              (scan rules)))
+                         (let ((v (andmap (lambda (r)
+                                            (instantiate r dict))
+                                          (skeleton-of (car rules)))))
+                           (or v (shows exp #\newline
+                                        "|> " (pattern-of (car rules)) #\newline
+                                        "-> " (skeleton-of (car rules)) #\newline))
+                           (or v (scan (cdr rules)))))))))
+              (scan the-rules)))
             (pattern-of
              (lambda (rule)
                (car rule)))
             (skeleton-of
              (lambda (rule)
-               (cadr rule))))
+               (cdr rule))))
         simplify-exp))
     (define (match pat exp dict)
       (letrec
@@ -55,10 +54,10 @@
               (eq? (car pat) '?)))
            (one-of-these-predicates?
             (lambda (pat)
-              (assq (car pat) predicates)))
+              (assq (car pat) the-predicates)))
            (the-predicate-yields-true?
             (lambda (pat exp)
-              ((cadr (assq (car pat) predicates))
+              ((cadr (assq (car pat) the-predicates))
                exp))))
         (cond
           ((eq? dict 'failed) 'failed)
@@ -126,47 +125,3 @@
                     s)))))
       (sub-instantiate skeleton)))
     (simplifier)))
-
-
-;; --------------------------
-
-(define algebra-rules
-  '(((+ (?c c1) (?c c2)) (: (+ c1 c2)))
-    ((* (?c c1) (?c c2)) (: (* c1 c2)))
-    ((+ (?c c1) (+ (?c c2) (? e)))
-     (+ (: (+ c1 c2)) (: e)))
-    ((* (?c c1) (* (?c c2) (? e)))
-     (* (: (* c1 c2)) (: e)))
-    ((+ (? e) (? e)) (* 2 (: e)))
-    ((+ (? e) (* (?c c) (? e)))
-     (* (: (+ c 1)) (: e)))
-    ((* (? e) (* (?c c) (? e)))
-     (* (: (+ c 1)) (? e)))
-    ;;; ^^ constants
-    ((+ (?p e) (?a a))
-     (+ (: a) (: e)))
-    ((* (?p e) (?a a))
-     (* (: a) (: e)))
-    ((+ (?v v) (?c c))
-     (+ (: c) (: v)))
-    ((* (?v v) (?c c))
-     (* (: c) (: v)))
-    ((+ (+ (? a) (? b)) (? c))
-     (+ (: a) (+ (: b) (: c))))
-    ((* (* (? a) (? b)) (? c))
-     (* (: a) (* (: b) (: c))))
-    ((+ (?p e1) (+ (?c c) (? e2)))
-     (+ (: c) (+ (: e2) (: e1))))
-    ;;; ^^ reversing
-    ((+ 0 (? e)) (: e))
-    ((* 1 (? e)) (: e))
-    ((* 0 (? e)) 0)
-    ((* (? a) (+ (? b) (? c)))
-     (+ (* (: a) (: b)) (* (: a) (: c))))))
-
-(define dsimp
-  (simplify-machine
-   (list
-    `((?v ,symbol?)
-      (?c ,number?))
-    algebra-rules)))
