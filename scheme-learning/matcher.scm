@@ -1,13 +1,13 @@
-#lang scheme
+#lang racket
 
 (define (atom? x)
   (and (not (pair? x))
        (not (null? x))))
 
 (define (simplify-machine material)
-  (let ((predicts (cons (car material)
-                        `((?a ,atom?)
-                          (?p ,pair?))))
+  (let ((predicates (append (car material)
+                          `((?a ,atom?)
+                            (?p ,pair?))))
         (rules (cadr material)))
     (define (simplifier)
       (letrec
@@ -56,10 +56,10 @@
               (eq? (car pat) '?)))
            (one-of-these-predicates?
             (lambda (pat)
-              (assq (car pat) predicts)))
-           (the-predict-yields-true
+              (assq (car pat) predicates)))
+           (the-predicate-yields-true
             (lambda (pat)
-              (apply (cadr (assq (car pat) predicts))
+              (apply (cadr (assq (car pat) predicates))
                      (cdr pat)))))
         (cond
           ((eq? dict 'failed) 'failed)
@@ -74,7 +74,7 @@
           ((null? pat) 'failed)
           ((null? exp) 'failed)
           ((one-of-these-predicates? pat)
-           (if (the-predict-yields-true pat)
+           (if (the-predicate-yields-true pat)
                (extend-dict pat exp dict)
                'failed))
           ((arbitary-expression? pat)
