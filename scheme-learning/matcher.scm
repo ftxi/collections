@@ -18,11 +18,9 @@
     ((null? pat) 'failed)
     ((null? exp) 'failed)
     ((one-of-these-predicates? pat)
-           (if (the-predicate-yields-true? pat exp)
-               (extend-dict pat exp dict)
-               'failed))
-    ((arbitary-expression? pat)
-     (extend-dict pat exp dict))
+     (if (the-predicate-yields-true? pat exp)
+         (extend-dict pat exp dict)
+         'failed))
     ((atom? exp)
      'failed)
     (else
@@ -41,16 +39,14 @@
     ((cadr (assq (car pat) the-predicates))
      exp)))
 
-(define (instantiate skeleton dict)
-  (define (sub-instantiate s)
-    (cond
-      ((atom? s) s)
-      ((null? s) '())
-      ((skeleton-evaluation? s)
-       (skeleton-evaluate (cadr s) dict))
-      (else (cons (sub-instantiate (car s))
-                  (sub-instantiate (cdr s))))))
-  (sub-instantiate skeleton))
+(define (instantiate form dict)
+  (eval
+   `(let ,(map (lambda (s)
+                 (list (car s)
+                       (list 'quote
+                             (cadr s))))
+               dict)
+      ,form)))
 
 (define (extend-dict pat exp dict)
   (let ((name (cadr pat)))
@@ -74,7 +70,7 @@
                   (let ((ans (instantiate
                                  (skeleton-of (car rules))
                                dict)))
-                    (and ans (shows "using " (caar rules) " => " (cadar rules) " on " exp " gets " ans))
+                    (and ans (shows "use " (caar rules) " => " (cadar rules) " on " exp " gets " ans))
                     (if ans
                         (simplify-exp ans (cons exp used))
                         (scan (cdr rules))))))))
@@ -89,42 +85,6 @@
   (define (initial-simplify-exp exp)
     (simplify-exp exp '()))
   initial-simplify-exp)
-
-(define (arbitary-constant? pat)
-  (eq? (car pat) '?c))
-
-(define (constant? x)
-  (number? x))
-
-(define (arbitary-variable? pat)
-  (eq? (car pat) '?v))
-
-(define (variable? x)
-  (and (atom? x)
-       (not (number? x))))
-
-(define (arbitary-atom? pat)
-  (eq? (car pat) '?a))
-
-(define (arbitary-pair? pat)
-  (eq? (car pat) '?p))
-
-(define (arbitary-expression? pat)
-  (eq? (car pat) '?))
-
-(define (skeleton-evaluation? s)
-  (eq? (car s) ':))
-
-(define (skeleton-evaluate s dict)
-  (if (atom? s)
-      (lookup s dict)
-      (eval
-       `(let ,(map (lambda (s)
-                     (list (car s)
-                           (list 'quote
-                                 (cadr s))))
-                   dict)
-          ,s))))
 
 (define (lookup s dict)
   (let ((t (assq s dict)))
@@ -142,62 +102,122 @@
   (for-each display s)
   (newline))
 
+;; ------------------------------------
+
+(define (logic-varible? s)
+  (and (pair? s)
+       (and (eq? (car s) 'not)
+            (null? (cdr s)))))
+
+(define (logic-pair? s)
+  (and (pair? s)
+       (not (logic-varible? s))))
+
 (define the-predicates
   `((?a ,atom?)
     (?p ,pair?)
     (?c ,number?)
-    (?v ,symbol?)))
+    (?v ,symbol?)
+    (?lv ,logic-varible?)
+    (?lp ,logic-pair?)
+    (? ,(lambda (s) #t))))
 
-(define algebra-rules
-  '(((+ (?c c1) (?c c2))
-     (: (if (> c1 c2)
-            `(*add* ,c2 ,c1)
-            (+ c1 c2))))
-    ((* (?c c1) (?c c2)) (: (* c1 c2)))
-    ((- (?c c)) (: (- c)))
-    ((expt (?c c1) (?c c2)) (: (expt c1 c2)))
-    ((* (? e) (expt (? e) (? k)))
-     (expt (: e) (+ 1 (: k))))
-    ((+ (?c c1) (+ (?c c2) (? e)))
-     (+ (: (+ c1 c2)) (: e)))
-    ((* (?c c1) (* (?c c2) (? e)))
-     (* (: (* c1 c2)) (: e)))
-    ((+ (? e) (? e)) (* 2 (: e)))
-    ((+ (? e) (* (?c c) (? e)))
-     (* (: (+ c 1)) (: e)))
-    ((* (? e) (? e)) (expt (: e) 2))
-    ((* (? e) (* (?c c) (? e)))
-     (* (: (+ c 1)) (: e)))
-    ;;; ^^ constants
-    ((+ (?p e) (?a a))
-     (+ (: a) (: e)))
-    ((* (?p e) (?a a))
-     (* (: a) (: e)))
-    ((+ (?v v) (?c c))
-     (+ (: c) (: v)))
-    ((* (?v v) (?c c))
-     (* (: c) (: v)))
-    ((+ (+ (? a) (? b)) (? c))
-     (+ (: a) (+ (: b) (: c))))
-    ((* (* (? a) (? b)) (? c))
-     (* (: a) (* (: b) (: c))))
-    ((+ (?p e1) (+ (?c c) (? e2)))
-     (+ (: c) (+ (: e2) (: e1))))
-    ((- (? e1) (? e2))
-     (+ (: e1) (- (: e2))))
-    ;;; ^^ reversing
-    ((+ 0 (? e)) (: e))
-    ((* 1 (? e)) (: e))
-    ((* 0 (? e)) 0)
-    ((expt (? e) 0) 1)
-    ((expt (? e) 1) (: e))
-    ((expt (expt (? e) (? e1)) (? e2))
-     (expt (: e) (* (: e1) (: e2))))
-    ((* (expt (? e) (? e1))
-        (expt (? e) (? e2)))
-     (expt (: e) (+ (: e1) (: e2))))
-    ((* (? a) (+ (? b) (? c)))
-     (+ (* (: a) (: b)) (* (: a) (: c))))))
+;; ------------------------------------
 
-(define dsimp
-  (simplifier algebra-rules))
+
+(define (symbol-less? u v)
+  (let ((atom->string
+         (lambda (a)
+           (cond
+             ((number? a) (number->string a))
+             ((symbol? a) (symbol->string a))))))
+    (cond
+      ((and (atom? u)
+            (atom? v))
+       (string<? (atom->string u)
+                 (atom->string v)))
+      ((and (pair? u)
+            (pair? v))
+       (if (equal? (car u) (car v))
+           (symbol-less? (cdr u) (cdr v))
+           (symbol-less? (car u) (car v))))
+      ((null? v) #f)
+      ((null? u) #t)
+      ((atom? v) #f)
+      ((atom? u) #t))))
+
+(define (logic-symbol-less? u v)
+  (let* ((u-not?
+          (and (pair? u)
+               (eq? (car u) 'not)))
+         (v-not?
+          (and (pair? v)
+               (eq? (car v) 'not)))
+         (u-s (if u-not?
+                  (cadr u)
+                  u))
+         (v-s (if v-not?
+                  (cadr v)
+                  v)))
+    (if (equal? u-s v-s)
+        (and (not u-not?) v-not?)
+        (symbol-less? u-s v-s))))
+
+(define logic-rules
+  '(((and (? a) (? b))
+     (and (logic-symbol-less? b a)
+          `(and ,b ,a)))
+    ((or (? a) (? b))
+     (and (logic-symbol-less? b a)
+          `(or ,b ,a)))
+    ((and (?p p) (?a a))
+     `(and ,a ,p))
+    ((or (?p p) (?a a))
+     `(or ,a ,p))
+    ((and (and (? a) (? b)) (? c))
+     `(and ,a (and ,b ,c)))
+    ((or (or (? a) (? b)) (? c))
+     `(or ,a (or ,b ,c)))
+    ((and (? a) (and (? b) (? c)))
+     (and (logic-symbol-less? b a)
+          `(and ,b (and ,a ,c))))
+    ((or (? a) (or (? b) (? c)))
+     (and (logic-symbol-less? b a)
+          `(or ,b (and ,a ,c))))
+    ;; definations
+    ((implies (? a) (? b))
+     `(or (not ,a) ,b))
+    ((iff (? a) (? b))
+     `(or (and ,a ,b)
+         (and (not ,a) (not ,b))))
+    ;; move not inside & erase double not(s)
+    ((not (and (? a) (? b)))
+     `(or (not ,a) (not ,b)))
+    ((not (or (? a) (? b)))
+     `(and (not ,a) (not ,b)))
+    ((not (not (? p)))
+     p)
+    ;; logical
+    ((and (? p) (not (? p)))
+     #f)
+    ((or (? p) (not (? p)))
+     #t)
+    ((and (? p) #t)
+     p)
+    ((and (? p) #f)
+     #f)
+    ((or (? p) #t)
+     #t)
+    ((or (? p) #f)
+     #f)
+    ((and #t (? p))
+     p)
+    ((and #f (? p))
+     #f)
+    ((or #t (? p))
+     #t)
+    ((or #f (? p))
+     p)))
+
+(define lsimp
+  (simplifier logic-rules))
