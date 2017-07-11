@@ -18,9 +18,10 @@
             (lambda (exp)
               (try-rules (if (pair? exp)
                              (map simplify-exp exp)
-                             exp))))
+                             exp)
+                         '())))
            (try-rules
-            (lambda (exp)
+            (lambda (exp used)
               (define (scan rules)
                 (if (null? rules)
                     exp
@@ -39,7 +40,12 @@
                                         "|> " (pattern-of (car rules)) #\newline
                                         "-> " (skeleton-of (car rules)) #\newline))
                            (or v (scan (cdr rules)))))))))
-              (scan the-rules)))
+              (if (ormap (lambda (s)
+                           (equal? s exp))
+                         used)
+                  exp
+                  (try-rules (scan the-rules)
+                             (cons exp used)))))
             (pattern-of
              (lambda (rule)
                (car rule)))
