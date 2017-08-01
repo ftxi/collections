@@ -1,127 +1,223 @@
+#lang scheme
 
 (define (atom? x)
   (and (not (pair? x))
        (not (null? x))))
 
+(define (match pat exp dict)
+  (cond
+    ((eq? dict 'failed) 'failed)
+    ((atom? pat)
+     (if (and (atom? exp)
+              (eq? pat exp))
+         dict
+         'failed))
+    ((and (null? pat)
+          (null? exp))
+     dict)
+    ((null? pat) 'failed)
+    ((null? exp) 'failed)
+    ((one-of-these-predicates? pat)
+     (if (the-predicate-yields-true? pat exp)
+         (extend-dict pat exp dict)
+         'failed))
+    ((atom? exp)
+     'failed)
+    (else
+     (match (cdr pat)
+            (cdr exp)
+            (match (car pat)
+                   (car exp)
+                   dict)))))
+
+(define one-of-these-predicates?
+ (lambda (pat)
+   (assq (car pat) the-predicates)))
+
+(define the-predicate-yields-true?
+  (lambda (pat exp)
+    ((cadr (assq (car pat) the-predicates))
+     exp)))
+
+(define (instantiate form dict)
+  (eval
+   `(let ,(map (lambda (s)
+                 (list (car s)
+                       (list 'quote
+                             (cadr s))))
+               dict)
+      ,form)))
+
+(define (extend-dict pat exp dict)
+  (let ((name (cadr pat)))
+    (let ((v (assq name dict)))
+      (cond ((not v)
+             (cons (list name exp) dict))
+            ((equal? (cadr v) exp) dict)
+            (else 'failed)))))
+
+(define (simplifier the-rules)
+  (define (simplify-exp exp used)
+    (define (try-rules exp)
+      (define (scan rules)
+        (if (null? rules)
+            exp
+            (let ((dict (match (pattern-of (car rules))
+                          exp
+                          '())))
+              (if (eq? dict 'failed)
+                  (scan (cdr rules))
+                  (let ((ans (instantiate
+                                 (skeleton-of (car rules))
+                               dict)))
+                    (and ans (shows "use " (caar rules) " => " (cadar rules) " on " exp " gets " ans))
+                    (if ans
+                        (simplify-exp ans (cons exp used))
+                        (scan (cdr rules))))))))
+      (scan the-rules))
+    (if (ormap (lambda (s)
+                 (equal? s exp))
+               used)
+        exp
+        (try-rules (if (pair? exp)
+                       (map initial-simplify-exp exp)
+                       exp))))
+  (define (initial-simplify-exp exp)
+    (simplify-exp exp '()))
+  initial-simplify-exp)
+
+(define (lookup s dict)
+  (let ((t (assq s dict)))
+    (if t
+        (cadr t)
+        s)))
+
+(define (pattern-of rule)
+  (car rule))
+
+(define (skeleton-of rule)
+  (cadr rule))
+
 (define (shows . s)
   (for-each display s)
   (newline))
 
-(define (simplify-machine material)
-  (let ((the-predicates `(,@(car material)
-                      (?a ,atom?)
-                      (?p ,pair?)))
-        (the-rules (cadr material)))
-    (define (simplifier)
-      (letrec
-          ((simplify-exp
-            (lambda (exp)
-              (try-rules (if (pair? exp)
-                             (map simplify-exp exp)
-                             exp))))
-           (try-rules
-            (lambda (exp)
-              (define (scan rules)
-                (if (null? rules)
-                    exp
-                    (let ((dict (match (pattern-of (car rules))
-                                  exp
-                                  '())))
-                      (cond
-                        ((eq? dict 'failed)
-                         ;; (shows "tried " (pattern-of (car rules)) " on " exp " whereas " dict)
-                         (scan (cdr rules)))
-                        (else
-                         (let ((v (andmap (lambda (r)
-                                            (instantiate r dict))
-                                          (skeleton-of (car rules)))))
-                           (or v (shows exp #\newline
-                                        "|> " (pattern-of (car rules)) #\newline
-                                        "-> " (skeleton-of (car rules)) #\newline))
-                           (or v (scan (cdr rules)))))))))
-              (scan the-rules)))
-            (pattern-of
-             (lambda (rule)
-               (car rule)))
-            (skeleton-of
-             (lambda (rule)
-               (cdr rule))))
-        simplify-exp))
-    (define (match pat exp dict)
-      (letrec
-          ((arbitary-expression?
-            (lambda (pat)
-              (eq? (car pat) '?)))
-           (one-of-these-predicates?
-            (lambda (pat)
-              (assq (car pat) the-predicates)))
-           (the-predicate-yields-true?
-            (lambda (pat exp)
-              ((cadr (assq (car pat) the-predicates))
-               exp))))
-        (cond
-          ((eq? dict 'failed) 'failed)
-          ((atom? pat)
-           (if (and (atom? exp)
-                    (eq? pat exp))
-               dict
-               'failed))
-          ((and (null? pat)
-                (null? exp))
-           dict)
-          ((null? pat) 'failed)
-          ((null? exp) 'failed)
-          ((one-of-these-predicates? pat)
-           (if (the-predicate-yields-true? pat exp)
-               (extend-dict pat exp dict)
-               'failed))
-          ((arbitary-expression? pat)
-           (extend-dict pat exp dict))
-          ((atom? exp)
-           'failed)
-          (else
-           (match (cdr pat)
-             (cdr exp)
-             (match (car pat)
-               (car exp)
-               dict))))))
-    (define (extend-dict pat exp dict)
-      (let ((name (cadr pat)))
-        (let ((v (assq name dict)))
-          (cond ((not v)
-                 (cons (list name exp) dict))
-                ((equal? (cadr v) exp) dict)
-                (else 'failed)))))
-    (define (instantiate skeleton dict)
-      (letrec
-          ((sub-instantiate
-            (lambda (s)
-              (cond
-                ((atom? s) s)
-                ((null? s) '())
-                ((skeleton-evaluation? s)
-                 (skeleton-evaluate (cadr s) dict))
-                (else (cons (sub-instantiate (car s))
-                            (sub-instantiate (cdr s)))))))
-           (skeleton-evaluation?
-            (lambda (s)
-              (eq? (car s) ':)))
-           (skeleton-evaluate
-            (lambda (s dict)
-              (if (atom? s)
-                  (lookup s dict)
-                  (eval
-                   `(let ,(map (lambda (s)
-                                 (list (car s)
-                                       (list 'quote
-                                             (cadr s))))
-                               dict)
-                      ,s)))))
-           (lookup
-            (lambda (s dict)
-              (let ((t (assq s dict)))
-                (if t
-                    (cadr t)
-                    s)))))
-      (sub-instantiate skeleton)))
-    (simplifier)))
+;; ------------------------------------
+
+(define (logic-varible? s)
+  (and (pair? s)
+       (and (eq? (car s) 'not)
+            (null? (cdr s)))))
+
+(define (logic-pair? s)
+  (and (pair? s)
+       (not (logic-varible? s))))
+
+(define the-predicates
+  `((?a ,atom?)
+    (?p ,pair?)
+    (?c ,number?)
+    (?v ,symbol?)
+    (?lv ,logic-varible?)
+    (?lp ,logic-pair?)
+    (? ,(lambda (s) #t))))
+
+;; ------------------------------------
+
+
+(define (symbol-less? u v)
+  (let ((atom->string
+         (lambda (a)
+           (cond
+             ((number? a) (number->string a))
+             ((symbol? a) (symbol->string a))))))
+    (cond
+      ((and (atom? u)
+            (atom? v))
+       (string<? (atom->string u)
+                 (atom->string v)))
+      ((and (pair? u)
+            (pair? v))
+       (if (equal? (car u) (car v))
+           (symbol-less? (cdr u) (cdr v))
+           (symbol-less? (car u) (car v))))
+      ((null? v) #f)
+      ((null? u) #t)
+      ((atom? v) #f)
+      ((atom? u) #t))))
+
+(define (logic-symbol-less? u v)
+  (let* ((u-not?
+          (and (pair? u)
+               (eq? (car u) 'not)))
+         (v-not?
+          (and (pair? v)
+               (eq? (car v) 'not)))
+         (u-s (if u-not?
+                  (cadr u)
+                  u))
+         (v-s (if v-not?
+                  (cadr v)
+                  v)))
+    (if (equal? u-s v-s)
+        (and (not u-not?) v-not?)
+        (symbol-less? u-s v-s))))
+
+(define logic-rules
+  '(((and (? a) (? b))
+     (and (logic-symbol-less? b a)
+          `(and ,b ,a)))
+    ((or (? a) (? b))
+     (and (logic-symbol-less? b a)
+          `(or ,b ,a)))
+    ((and (?p p) (?a a))
+     `(and ,a ,p))
+    ((or (?p p) (?a a))
+     `(or ,a ,p))
+    ((and (and (? a) (? b)) (? c))
+     `(and ,a (and ,b ,c)))
+    ((or (or (? a) (? b)) (? c))
+     `(or ,a (or ,b ,c)))
+    ((and (? a) (and (? b) (? c)))
+     (and (logic-symbol-less? b a)
+          `(and ,b (and ,a ,c))))
+    ((or (? a) (or (? b) (? c)))
+     (and (logic-symbol-less? b a)
+          `(or ,b (and ,a ,c))))
+    ;; definations
+    ((implies (? a) (? b))
+     `(or (not ,a) ,b))
+    ((iff (? a) (? b))
+     `(or (and ,a ,b)
+         (and (not ,a) (not ,b))))
+    ;; move not inside & erase double not(s)
+    ((not (and (? a) (? b)))
+     `(or (not ,a) (not ,b)))
+    ((not (or (? a) (? b)))
+     `(and (not ,a) (not ,b)))
+    ((not (not (? p)))
+     p)
+    ;; logical
+    ((and (? p) (not (? p)))
+     #f)
+    ((or (? p) (not (? p)))
+     #t)
+    ((and (? p) #t)
+     p)
+    ((and (? p) #f)
+     #f)
+    ((or (? p) #t)
+     #t)
+    ((or (? p) #f)
+     #f)
+    ((and #t (? p))
+     p)
+    ((and #f (? p))
+     #f)
+    ((or #t (? p))
+     #t)
+    ((or #f (? p))
+     p)))
+
+(define lsimp
+  (simplifier logic-rules))

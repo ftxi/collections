@@ -91,9 +91,16 @@
       (and (: b) (: a)))
      ((implies (? a) (? b))
       (and (not a) b))
+     ((iff (? a) (? b))
+      (or (and (: a) (: b))
+          (and (not (: a))
+               (not (: b)))))
+     
      ; ... and more and more ...
      ((not (not (? e)))
       (: e)))))
 
 (define lsimp
   (simplify-machine logical-material))
+
+(lsimp '(iff a b))
