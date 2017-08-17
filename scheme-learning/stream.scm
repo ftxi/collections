@@ -10,8 +10,6 @@
 (define (lazy-cdr s)
   (force (cdr s)))
 
-(define lazy-nil (delay '()))
-
 (define (integer-from x)
   (lazy-cons x (integer-from (+ 1 x))))
 
@@ -101,3 +99,13 @@
      (display (lazy-car s))
      (newline)
      (print-head (lazy-cdr s) (- n 1)))))
+
+(define (take n stream)
+  (if (= n 0)
+      '()
+      (cons (lazy-car stream)
+            (take (- n 1)
+                  (lazy-cdr stream)))))
+
+(define (stream->list stream)
+  (lazy-accumulate cons '() stream))
