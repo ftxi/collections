@@ -7,11 +7,8 @@
         (lazy-cons m '())
         (lazy-cons m (continued-fraction (/ p))))))
 
-(define (cfrac k n)
-  (take k (continued-fraction n)))
-
 (define (approximate k n)
-  (let ((rcf (reverse (cfrac k n))))
+  (let ((rcf (reverse (take k (continued-fraction n)))))
     (let loop ((acc (car rcf)) (l (cdr rcf)))
       (if (null? l)
           acc
