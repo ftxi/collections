@@ -1,5 +1,9 @@
 ;;; lambda.scm : perform lambda-calculus within scheme
 
+(define (atom x)
+  (and (not (pair? x))
+       (not (null? x))))
+
 (define (compose f g . s)
   (if (null? s)
       (lambda (x) (f (g x)))
@@ -54,3 +58,19 @@
       (else #\0))))
 
 (display (distinguishable-name '(a a1 ccc)))
+
+(define (substitute from-expr to-expr in-expr)
+  (cond
+    ((eqv? to-expr in-expr) from-expr)
+    ((atom? to-expr in-expr) in-expr)
+    ((application? in-expr)
+     (make-application (substitute from-expr
+                                   to-expr
+                                   (application-operator in-expr))
+                       (substitute from-expr
+                                   to-expr
+                                   (application-operand in-expr))))
+    ((lambda-form? in-expr)
+     (let ((psi (lambda-label in-expr))
+           (p (lambda-content in-expr)))
+       (if (
