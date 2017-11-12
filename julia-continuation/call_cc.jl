@@ -1,23 +1,23 @@
 #!/usr/bin/env julia
 
 # This attempts to implement call/cc feature in julia
-# However
 
-type Continuation_thrown{T}
-    value :: T
+
+type Continuation_box{name}
+    value
 end
 
+
 macro call_cc(name::Symbol, content)
-    esc( # the esc(...) is useless in this 
     quote
-        $name = v -> throw(Continuation_thrown(v))
+        u = Symbol(randstring())
+        $name = v -> throw(Continuation_thrown{u}(v))
         try
             $content
         catch e
-            if isa(e, Continuation_thrown)
+            if e isa Continuation_box{u}
                 e.value
             end
         end
-    end)
+    end
 end
-

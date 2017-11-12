@@ -1,4 +1,8 @@
 
+## file system
+
+.DS_Store
+
 ## python
 
 *.py[coz]

@@ -2,21 +2,19 @@
 
 include("call_cc.jl")
 
-@show 2 + @call_cc cc begin
+@show @call_cc cc begin
     5*6+cc(7)
-    while(true) bla-bla-bla end
-    throw(no)
 end # ⇒ 9
 
 
 block(content::Function, except::Function) =
-    ((), @call_cc success begin
+    (@call_cc success begin
         except(@call_cc fail begin
             success(content(fail))
         end)
     end)
 
-@show block(
+block(
     raise -> begin
         function safe_div(a, b)
             if b == 0
