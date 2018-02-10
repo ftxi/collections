@@ -3,19 +3,7 @@
 ;; derived from matcher-version4.scm
 ;; which is the 4th version of my own pattern matcher
 
-;; the atom predicate, I don't understand why this is not given by default
-
-(define (atom? p)
-  (and (not (pair? p))
-       (not (null? p))))
-
-;; the shows utility, used for debugging
-
-(define (shows . s)
-  (cond ((null? s) (newline))
-        (else (display (car s))
-              (display #\tab)
-              (apply shows (cdr s)))))
+(load "utilities.scm")
 
 ;; the matching-rule tuple structure
 

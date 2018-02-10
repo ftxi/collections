@@ -20,8 +20,8 @@
   (let ((chars (map (compose string->list
                              symbol->string)
                     names)))
-    (let loop ((cs chars) (ans '(#\a)))
-      ;((compose string->symbol list->string)
+    ((compose string->symbol list->string)
+     (let loop ((cs chars) (ans '(#\a)))
        (if (null? cs)
            ans
            (loop (cdr cs)
@@ -37,7 +37,7 @@
                       (if (equal? (take n (car cs)) ans)
                           (append ans
                                   (list (different-char (list-ref n (car cs)))))
-                          ans)))))))));)
+                          ans))))))))))
 
 (define (different-char x)
   (let ((ci char->integer)
@@ -59,6 +59,7 @@
 
 (display (distinguishable-name '(a a1 ccc)))
 
+#|
 (define (substitute from-expr to-expr in-expr)
   (cond
     ((eqv? to-expr in-expr) from-expr)
@@ -74,3 +75,4 @@
      (let ((psi (lambda-label in-expr))
            (p (lambda-content in-expr)))
        (if (
+|#
