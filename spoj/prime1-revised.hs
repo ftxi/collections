@@ -1,6 +1,6 @@
 
 readInts :: IO [Int]
-readInts = fmap (map read.words) getLine
+readInts = fmap (map read . words) getLine
 
 primes = sieve [2..]
   where sieve (x:xs)

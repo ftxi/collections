@@ -91,6 +91,23 @@
                rules))))
     simplify-exp))
 
+;; 
+(define (multiple-simplifier rules)
+  (letrec ((simplify-loop
+            (lambda (exp tried)
+              (if (member exp tried) ;; to avoid infinite loop
+                  exp
+                  (simplify-loop (pattern-transform*
+                                  (if (list? exp)
+                                      (map simplify-exp exp)
+                                      exp)
+                                  rules)
+                                 (cons exp tried)))))
+           (simplify-exp ;; to start a simplify loop
+            (lambda (exp)
+              (simplify-loop exp '()))))
+    simplify-exp))
+              
 
 ;; cannot use #t and #f, because they are self-evaluated the matcher use #f as the failed reply
 (define :t #t)
@@ -118,10 +135,10 @@
    (rule (p)
          (and :f p)
          ':f)
-   ;; reversing
-   (rule (a b)
-         (a b)
-         `(,b ,a)
+   ;; reversing, "k" is the connector
+   (rule (k a b)
+         (k a b)
+         `(,k ,b ,a)
          (logic-symbol-less? b a))
    ;; transfer to basic form
    (rule (a b)
@@ -139,27 +156,63 @@
          (not (and p q))
          `(or (not ,p) (not ,q)))
    ;; DNF (disjunctive normal form) transform
-   ;(rule (a b c)
-   ;      (and a (or b c))
-   ;      `(or (and ,a ,b) (and ,a ,c)))
+   (rule (a)
+         (DNF-transform a)
+         a
+         (or (atom? a)
+             (and (pair? a)
+                  (eq? (car a) 'not))))
+   (rule (a b c)
+         (DNF-transform (and a (or b c)))
+         `(or (CNF-transform (and ,a ,b))
+              (CNF-transform (and ,a ,c))))
+   (rule (k a b) ;; this match and the above one is in order, should not change
+         (DNF-transform (k a b))
+         `(,k (CNF-transform ,a)
+              (CNF-transform ,b)))
+   ;; CNF (conjunctive normal form) transform
+   (rule (a)
+         (CNF-transform a)
+         a
+         (or (atom? a)
+             (and (pair? a)
+                  (eq? (car a) 'not))))
+   (rule (a b c)
+         (CNF-transform (or a (and b c)))
+         `(and (DNF-transform (or ,a ,b))
+               (DNF-transform (or ,a ,c))))
+   (rule (k a b) ;; in order
+         (CNF-transform (k a b))
+         `(,k (DNF-transform ,a)
+              (DNF-transform ,b)))
    ))
 
 (define lsimp (simplifier logical-simplification-rules))
+(define (ldsimp x)
+  ((multiple-simplifier logical-simplification-rules)
+   (list 'DNF-transform x)))
 
-(logic-symbol-less? '(not :f) ':t)
+(logic-symbol-less? '(not :f) ':t) 
 ; (pattern-transform* '(and :t :f) logical-simplification-rules)
 (lsimp '(and :t (or (not :t) :f)))
 (lsimp '(implies p q))
 (lsimp '(and (implies p q) (implies q p)))
 (lsimp '(iff p q))
 (lsimp '(implies (implies (implies p q) p) p))
+(lsimp '(and p (not p)))
+(lsimp '(and (not p) p))
+(lsimp '(and (and p q) r))
+(ldsimp '(and (or p q) r))
+(lsimp '(cnf-transform (and r p)))
 
 
+(define fs (multiple-simplifier (matching-rules
+                                 (rule () a 'b)
+                                 (rule () b 'c)
+                                 ;(rule () c 'b)
+                                 )))
 
-
-
-
-
+(fs 'a)
 
 
 
