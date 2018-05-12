@@ -6,14 +6,14 @@
 (define (get-u-gen box)
   (lambda (x n)
     (let* ((s (inexact->exact (floor x))) (r (- x s)))
-      (+  (cond
-            ((= (box-ref box s n) 1) (sin (* r pi)))
-            (else 0))
-          (cond
-            ((< s 1) 0)
-            ((= (box-ref box (- s 1) n) 1)
-             (sin (+ pi (* r pi))))
-            (else 0))))))
+      (+ (cond
+           ((= (box-ref box s n) 1) (sin (* r pi)))
+           (else 0))
+         (cond
+           ((< s 1) 0)
+           ((= (box-ref box (- s 1) n) 1)
+            (sin (+ pi (* r pi))))
+           (else 0))))))
 
 (let* ((width 20)
        (height 10)
