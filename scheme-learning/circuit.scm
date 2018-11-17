@@ -7,7 +7,7 @@
   (if (null? gs)
       f
       (lambda (x)
-        (f (compose (car gs) (cdr gs))))))
+        (f ((apply compose (car gs) (cdr gs)) x)))))
 
 (define (shows . message)
   (let ((display-atom
@@ -56,6 +56,8 @@
 (define (call-each procs)
   (map (lambda (x) (x)) procs)
   unspecific)
+
+;; circuit operations
 
 (define (and-gate a b o)
   (let ((and-gate-procedure

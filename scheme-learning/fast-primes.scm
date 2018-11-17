@@ -1,7 +1,6 @@
-#lang scheme
 
-(define (even? x)
-  (eq? (remainder x 2) 0))
+;(define (even? x)
+;  (eq? (remainder x 2) 0))
 
 (define (square x)
   (* x x))
@@ -34,7 +33,7 @@
         (loop (+ n 1) (+ (* ans 100) (random 100))))))
 
 (define (large-prime-number)
-  (let ((x (large-number)))
+  (let ((x (+ (* (large-number) 2) 1)))
     (let loop ((n 1))
       (cond
         ((> n 100) x)
