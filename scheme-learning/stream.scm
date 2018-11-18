@@ -10,6 +10,8 @@
 (define (lazy-cdr s)
   (force (cdr s)))
 
+(define lnil '())
+
 (define (integer-from x)
   (lazy-cons x (integer-from (+ 1 x))))
 
