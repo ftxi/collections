@@ -33,7 +33,7 @@
         (loop (+ n 1) (+ (* ans 100) (random 100))))))
 
 (define (large-prime-number)
-  (let ((x (+ (* (large-number) 2) 1)))
+  (let ((x (+ (* (large-number) 2) 1))) ;; use an odd number to increase efficiency for a little bit
     (let loop ((n 1))
       (cond
         ((> n 100) x)
