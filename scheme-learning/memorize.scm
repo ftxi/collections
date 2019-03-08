@@ -64,3 +64,16 @@
        ((< n 2) n)
        (else (+ (fib (- n 1))
                 (fib (- n 2))))))))
+
+;; the Catalan numbers, see <http://oeis.org/A000108>
+(define tc
+  (memorize
+   (lambda (n)
+     (if (= n 1)
+         1
+         (let loop ((k 1) (s 0))
+           (if (= k n)
+               s
+               (loop (+ k 1)
+                     (+ s (* (tc k) (tc (- n k)))))))))))
+

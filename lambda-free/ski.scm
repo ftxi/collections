@@ -1,16 +1,6 @@
 
 (load "utilities.scm")
 
-(define remove (lambda (x s)
-                 (filter (lambda (u) (not (eqv? u x))) s)))
-(define insert (lambda (x s)
-                 (cons x (remove x s))))
-(define is-in? (lambda (x s)
-                 (cond
-                   ((null? s) #f)
-                   ((eqv? x (car s)) #t)
-                   (else (is-in? x (cdr s))))))
-
 (define (make-atom a)
   (list '*expression-atom* a))
 
@@ -59,19 +49,7 @@
        `(λ (,(get-lambda-variable s)) ,(expression->list (get-lambda-body s))))
       (else (error "[ERROR]expression->list: unexpected expression:" s)))))
 
-(define (free-variable exp)
-  (letrec
-      ((fv (lambda (s)
-             (let ((t (exp-type s)))
-               (cond
-                 ((eq? t '*expression-atom*)
-                  (list (get-atom s)))
-                 ((eq? t '*expression-application*)
-                  (append (fv (get-operator s)) (fv (get-operand s))))
-                 ((eq? t '*expression-lambda*)
-                  (remove (get-lambda-variable s) (fv (get-lambda-body s))))
-                 (else (error "[ERROR]free-variable: unexpected expression:" s)))))))
-    (fv exp)))
+;; the basic eliminator without any optimization
 
 (define (eliminate e)
   (let ((t (exp-type e)))
@@ -86,18 +64,18 @@
               (f (get-lambda-body e))
               (f0 (eliminate f))
               (t0 (exp-type f0)))
-         (if (is-in? x (free-variable f))
-             (cond
-               ((eq? t0 '*expression-atom*)
-                (make-atom '$i))
-               ((eq? t0 '*expression-application*)
-                (make-application
-                 (make-application (make-atom '$s)
-                                   (eliminate (make-lambda x (get-operator f0))))
-                 (eliminate (make-lambda x (get-operand f0)))))
-               (else
-                (error "[ERROR]eliminate: unexpected expression during lambda elimination:" (expression->list f))))
-             (make-application (make-atom '$k) f0))))
+         (cond
+           ((eq? t0 '*expression-atom*)
+            (if (eqv? x (get-atom f0))
+                (make-atom '$i)
+                (make-application (make-atom '$k) f0)))
+           ((eq? t0 '*expression-application*)
+            (make-application
+             (make-application (make-atom '$s)
+                               (eliminate (make-lambda x (get-operator f0))))
+             (eliminate (make-lambda x (get-operand f0)))))
+           (else
+            (error "[ERROR]eliminate: unexpected expression during lambda elimination:" (expression->list f))))))
       (else (error "[ERROR]eliminate: unexpected expression:" e)))))
 
 (define (unlambda-style s)
@@ -138,8 +116,6 @@ s
 
 (expression->list s)
 
-(free-variable s)
-(free-variable (get-lambda-body s))
 (show-unlambda (eliminate s))
 (show-unlambda (eliminate k))
 (show-unlambda (eliminate i))

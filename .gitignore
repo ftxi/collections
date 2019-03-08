@@ -25,3 +25,9 @@
 
 _*
 _*/
+
+## executables (for testing)
+
+*.out
+
+
