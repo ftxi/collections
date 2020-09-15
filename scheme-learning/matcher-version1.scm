@@ -157,7 +157,10 @@
            (diff (: u) (: v)))))
     ((diff (* (? x1) (? x2)) (?v v))
      (+ (* (diff (: x1) (: v)) (: x2))
-        (* (diff (: x2) (: v)) (: x1))))))
+        (* (diff (: x2) (: v)) (: x1))))
+    ((diff (expt (?v x) (?c c)) (?v x))
+     (* v (expt x (: (- v 1)))))  
+    ))
 
 (define algebra-rules
   '(((+ (?c c1) (?c c2)) (: (+ c1 c2)))
