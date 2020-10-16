@@ -30,4 +30,7 @@ _*/
 
 *.out
 
+## racket
+
+*/compiled/*
 

@@ -46,7 +46,7 @@
 (define (scale s)
   (diagonal-matrix (list s s 0.0) 0.0))
 
-(: transformation-compose (transformation transformation . -> . transformation))
+(: transformation-compose (transformation transformation * . -> . transformation))
 (define transformation-compose matrix*)
 
 (: apply-transformation (transformation position . -> . position))
