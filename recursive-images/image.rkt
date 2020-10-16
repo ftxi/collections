@@ -6,7 +6,8 @@
 (provide draw-sequence draw-sequence?
          minimal-size
          rp2
-         lambda-image define-image)
+         lambda-image define-image
+         text-pict text-draw)
 
 ;; main part
 
@@ -36,18 +37,26 @@
     ((define-image (name T r ...) procs ...)
      (define name (lambda-image (T r ...) procs ...)))))
 
-(define triangle (make-parameter #f))
-(define ap2 (make-parameter #f))
-
 ;; dummy draw function
+
+(require math/array math/matrix)
 
 (define (text-pict name)
   (lambda s
     (display "pict: ")
     (display name)
     (display " at ")
-    (map display s)
+    (map (lambda (u)
+           (cond
+             ((and (array? u) (col-matrix? u))
+              (display (string-append " (" (~r (pos2-x u) #:precision '(= 4))
+                                      ", " (~r (pos2-y u) #:precision '(= 4)) ") ")))
+             (else (display u))))
+           s)
     (newline)))
+
+(define triangle (make-parameter #f))
+(define ap2 (make-parameter #f))
 
 (define (text-draw im)
   (parameterize ((triangle (text-pict 'triangle))
@@ -58,6 +67,7 @@
           (rec (force s)))))))
 
 ;; test sample
+#|
 
 (define-image (simple t)
   (draw-sequence
@@ -67,3 +77,4 @@
    (simple (transformation-compose (scale 0.5) t))))
 
 (text-draw (simple identity-transformation))
+|#
