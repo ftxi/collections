@@ -4,7 +4,7 @@
 (require "transformations.rkt")
 (require "image.rkt")
 
-(provide define-image draw-sequence rp2 polygon brush draw)
+(provide lambda-image define-image draw-sequence rp2 polygon brush draw)
 
 (define polygon (make-parameter (text-pict 'polygon)))
 (define brush (make-parameter (text-pict 'brush)))
