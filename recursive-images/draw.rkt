@@ -9,15 +9,6 @@
 (define polygon (make-parameter (text-pict 'polygon)))
 (define brush (make-parameter (text-pict 'brush)))
 
-(define text-draw
-  (make-keyword-procedure
-   (lambda (kw kwargs im)
-     (parameterize ((minimal-size 0.01))
-       (let rec ((l (force im)))
-         (for ((s l))
-           (when (draw-sequence? s)
-             (rec (force s)))))))))
-
 (define (draw im #:size [size 200] #:backing-scale [bs 2.0] #:minimal [ms 0.2])
   (let* ((target (make-bitmap size size #:backing-scale bs))
          (dc (new bitmap-dc% [bitmap target])))

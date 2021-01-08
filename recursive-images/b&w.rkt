@@ -32,6 +32,24 @@
 
 ;; definition of images
 
+(define-image (cross t)
+  (draw-sequence
+   (brush (get-brush 'black))
+   ((polygon) (rp2 0.1 0.0)
+              (rp2 1.0 0.9)
+              (rp2 0.9 1.0)
+              (rp2 0.0 0.1)
+              (rp2 -0.9 1.0)
+              (rp2 -1.0 0.9)
+              (rp2 -0.1 0.0)
+              (rp2 -1.0 -0.9)
+              (rp2 -0.9 -1.0)
+              (rp2 0.0 -0.1)
+              (rp2 0.9 -1.0)
+              (rp2 1.0 -0.9))))
+
+(draw (cross (transformation-compose (scale 80.0) (translate 1.0 1.0) (rotate pi))))
+
 (define-image (simple t c)
   (draw-sequence
    ((brush) (get-brush c))
@@ -166,5 +184,42 @@
 
 #;(draw (fib345 (transformation-compose (scale 200.0) (translate 0.4 0.75) vertical-flip (scale 0.15))) #:size 200 #:minimal 1.0)
 
-(send (draw (fib345 (transformation-compose (scale 1024.0) (translate 0.4 0.75) vertical-flip (scale 0.15))) #:size 1024 #:minimal 1.0)
+#;(send (draw (fib345 (transformation-compose (scale 1024.0) (translate 0.4 0.75) vertical-flip (scale 0.15))) #:size 1024 #:minimal 1.0)
       save-file "fib345.png" 'png)
+
+(define-image (cactus t)
+  (let* ((a 0.25)
+         (b 0.22)
+         (ha 0.30)
+         (ha0 0.25)
+         (hb 0.35)
+         (hb0 0.30)
+         (ta (transformation-compose (translate (- a) ha)
+                                     (diagonal-transformation a (* 1.5 a))))
+         (tb (transformation-compose (translate b hb)
+                                     (diagonal-transformation b (* 1.8 b)))))
+    (letrec ((cactus-branch
+              (lambda (t)
+                (draw-sequence
+                 ((polygon) (rp2 -0.05 0.0) (rp2 0.05 0.0) (rp2 0.0 0.81))
+                 ((polygon) (rp2 0.0 ha0) (rp2 0.0 ha) (rp2 (- a) ha))
+                 ((polygon) (rp2 0.0 hb0) (rp2 0.0 hb) (rp2 b hb))
+                 (cactus-branch0 (transformation-compose t ta))
+                 (cross (transformation-compose t tb)))))
+             (cactus-branch0
+              (lambda (t)
+                (draw-sequence
+                 ((polygon) (rp2 -0.05 0.0) (rp2 0.05 0.0) (rp2 0.0 0.81))
+                 ((polygon) (rp2 0.0 ha0) (rp2 0.0 ha) (rp2 (- a) ha))
+                 ((polygon) (rp2 0.0 hb0) (rp2 0.0 hb) (rp2 b hb))
+                 (cross (transformation-compose t ta))
+                 (cross (transformation-compose t tb)))))
+             )
+      (draw-sequence
+       ((brush) (get-brush 'black))
+       (cactus-branch t)))))
+
+
+
+(draw (cactus (transformation-compose (scale 200.0) (translate 0.5 0.0) (centering 0.0 0.5 vertical-flip))) #:size 200 #:minimal 10)
+                 

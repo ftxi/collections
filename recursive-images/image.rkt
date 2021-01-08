@@ -23,7 +23,7 @@
 (define-syntax-parameter rp2 #f) ;; relative-position-2-dimensional
 (define-syntax lambda-image
   (syntax-rules ()
-    ((lambda-rules (T r ...) procs ...)
+    ((lambda-image (T r ...) procs ...)
      (lambda (T r ...)
        (let ((make-relative-pos2 (lambda (x y)
                                    (apply-transformation T (make-pos2 x y))))

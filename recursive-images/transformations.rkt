@@ -5,7 +5,7 @@
 
 (provide make-pos2 pos2-x pos2-y
          identity-transformation
-         translate rotate scale
+         translate rotate scale diagonal-transformation
          vertical-flip horizontal-flip
          centering axis-rotating
          transformation-compose apply-transformation
@@ -43,6 +43,12 @@
     (matrix [[  c (- s) 0.0]
              [  s    c  0.0]
              [0.0  0.0  1.0]])))
+
+(: diagonal-transformation (Flonum Flonum . -> . transformation))
+(define (diagonal-transformation sx sy)
+  (matrix [[ sx 0.0 0.0]
+           [0.0  sy 0.0]
+           [0.0 0.0 1.0]]))
 
 (: scale (Flonum . -> . transformation))
 (define (scale s)
