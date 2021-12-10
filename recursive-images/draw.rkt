@@ -4,10 +4,11 @@
 (require "transformations.rkt")
 (require "image.rkt")
 
-(provide lambda-image define-image draw-sequence rp2 polygon brush draw text-draw)
+(provide lambda-image define-image draw-sequence rp2 polygon brush pen draw text-draw)
 
 (define polygon (make-parameter (text-pict 'polygon)))
 (define brush (make-parameter (text-pict 'brush)))
+(define pen (make-parameter (text-pict 'pen)))
 
 (define (draw im #:size [size 200] #:backing-scale [bs 2.0] #:minimal [ms 0.2])
   (let* ((target (make-bitmap size size #:backing-scale bs))
@@ -20,7 +21,9 @@
                                                  (pos2-y pt)))
                                          points))))
                    (brush (lambda (b)
-                            (send dc set-brush b))))
+                            (send dc set-brush b)))
+                   (pen (lambda (p)
+                          (send dc set-pen p))))
       (let rec ((l (force im)))
         (for ((s l))
           (when (draw-sequence? s)
