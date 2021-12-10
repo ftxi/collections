@@ -19,11 +19,6 @@
            (begin x ...)
            (cond+ s ...))))))
 
-;(cond+
-; ((= 1 2) p (display p))
-; ((+ 2 2) p (display p))
-; (else #f))
-
 (define operators-list
   `((* / %)
     (+ -)
@@ -71,30 +66,22 @@
 (define (handle-parenthesis ls)
   (car
    (let loop ((left '()) (right ls))
-     ;(shows "loop " left " -- " right)
      (cond
        ((null? right)
-        ;(shows "case 1")
         (cons (reverse left) '()))
        ((equal? (car right) ")")
-        ;(shows "case 2")
         (cons (reverse left) (cdr right)))
        ((equal? (car right) "(")
-        ;(shows "case 3")
         (let ((res (loop '() (cdr right))))
           (loop (cons (car res) left) (cdr res))))
        (else
-        ;(shows "case 4 -- " (car right) "  --  " (eqv? (car right) "["))
         (loop (cons (car right) left) (cdr right)))))))
-
-;(string-replace s0 "(" " ( ")
 
 (define (split-at-first syms ls)
   (let loop ((left '()) (right ls))
     (if (null? right)
         #f
         (let ((x (car right)))
-          ;(shows "loop " left " -- " right)
           (cond
             ((member x syms)
              (list x (reverse left) (cdr right)))
@@ -105,13 +92,11 @@
 
 (define (polish-style ls)
   (let loop ((l ls) (remaining-ops rev-operator-list))
-    ;(shows "loop " l " -- " remaining-ops)
     (cond ((or (not (pair? l)) (null? remaining-ops)) l)
           ((and (pair? l) (null? (cdr l))) (loop (car l) remaining-ops))
           (else
            (let* ((current-ops (car remaining-ops))
                   (s (split-at-first current-ops l)))
-             ;(shows s " -- " current-ops)
              (if s
                  (let ((p1 (car s))
                        (p2 (loop (cadr s) rev-operator-list))
@@ -123,12 +108,6 @@
 
 (define (lexical-parse s)
   (polish-style (map* handle-words (handle-parenthesis (to-substrings s)))))
-
-(define s0 " (1+  2* (4    +56)  +3) == sin n")
-(to-substrings s0)
-(handle-parenthesis (to-substrings s0))
-(map* handle-words (handle-parenthesis (to-substrings s0)))
-(polish-style (map* handle-words (handle-parenthesis (to-substrings s0))))
 
 (define operators-procedure
   (list (list '+ +) (list '- -) (list '* *) (list '/ /) (list '% remainder)
@@ -144,22 +123,16 @@
 (define (calculate m)
   (cond
     ((number? m) m)
-    #;((not (pair? m))
+    ((not (pair? m))
      (shows m)
      (error "^unexpected expression"))
     (else
-     (let ((operator (cadr (assq (car m) operators-procedure)))
-           (operands (map calculate (cdr m))))
+     (let* ((info (assq (car m) operators-procedure))
+            (operator (cadr (cond (info info) (else (shows (car m)) (error "^unkonwn operator")))))
+            (operands (map calculate (cdr m))))
        (apply operator operands)))))
-    
 
-;(split-at-first '(3 4) '(1 2 3 4 5 6))
-
-#|
-(define (parse-exp s)
-  (cond+
-    ((regexp-match #px"^\\s*\\((.*)\\)\\s*$" s)
-     pat
-     (parse-exp (cadr pat)))
-    (else s)))
-|#
+(let loop ()
+  (display (calculate (lexical-parse (read-line))))
+  (newline)
+  (loop))
