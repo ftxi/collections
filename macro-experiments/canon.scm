@@ -1,0 +1,130 @@
+
+(load "amb.scm")
+
+(define-syntax define-symbol
+  (syntax-rules ()
+    ((define-symbol x) (define x 'x))))
+    
+(define-symbol I)
+(define-symbol II)
+(define-symbol III)
+(define-symbol IV)
+(define-symbol V)
+(define-symbol VI)
+(define-symbol VII)
+
+(define (note->number note)
+  (cond
+    ((eq? note 'I) 1)
+    ((eq? note 'II) 2)
+    ((eq? note 'III) 3)
+    ((eq? note 'IV) 4)
+    ((eq? note 'V) 5)
+    ((eq? note 'VI) 6)
+    ((eq? note 'VII) 7)
+    (else (display "note->number: unknown note: ")
+          (display note)
+          (newline))))
+
+(define-symbol unison)
+(define-symbol second)
+(define-symbol third)
+(define-symbol fourth)
+(define-symbol fifth)
+(define-symbol sixth)
+(define-symbol seventh)
+
+(define (myremainder a b)
+  (let ((d0 (remainder a b)))
+    (if (< d0 0)
+        (+ d0 b)
+        d0)))
+
+(define (interval note1 note2)
+  (let* ((d0 (remainder (- (note->number note1)
+                         (note->number note2))
+                        7))
+         (d (if (< d0 0)
+                (+ d0 7)
+                d0)))
+    (cond
+      ((= d 0) unison)
+      ((= d 1) second)
+      ((= d 2) third)
+      ((= d 3) fourth)
+      ((= d 4) fifth)
+      ((= d 5) sixth)
+      ((= d 6) seventh)
+      (else (display "interval: unknown note difference")
+            (display d)
+            (newline)))))
+
+(define-symbol unspecific)
+
+(define (eq-u? a b)
+  (or (eq? a unspecific)
+      (eq? b unspecific)
+      (eq? a b)))
+
+(define (interval-u note1 note2)
+  (if (or (eq? note1 unspecific)
+          (eq? note2 unspecific))
+      unspecific
+      (interval note1 note2)))
+
+(define canon-length 14)
+(define stretti-index 4)
+
+(define (list-integers a b)
+  (let loop ((n (- b 1)) (l '()))
+    (if (< n a)
+        l
+        (loop (- n 1) (cons n l)))))
+
+(define (shows . s)
+  (map display s)
+  (newline))
+
+;(list i vii vi v iii iv v i)
+
+(define canon
+  (let loop ((current-index 1) (line (list I)))
+    (shows `(loop ,current-index ,line))
+    (let* ((line-ref (lambda (n)
+                       ;(shows `(line-ref ,n) " in " line)
+                       (if (< n current-index)
+                           (list-ref line n)
+                           unspecific)))
+           (circular-ref (lambda (n)
+                           ;(shows `(circular-ref ,n))
+                           (line-ref (myremainder n canon-length))))
+           (first-note (line-ref 0))
+           (last-note (line-ref (- canon-length 1)))
+           ;(current-note (line-ref current-index))
+             ;(previous-note (line-ref (- current-index 1)))
+             )
+      (map (lambda (n)
+             ;(shows n " " (line-ref n))
+             (let* ((m (- n stretti-index))
+                    (current-interval (interval-u (circular-ref m) (circular-ref n)))
+                    (previous-interval (interval-u (circular-ref (+ m 1))
+                                                   (circular-ref (+ n 1)))))
+               (shows "checking interval between " m " and " n ", which are " (circular-ref m) " and " (circular-ref n))
+               (assert (or (eq-u? current-interval third)
+                           (eq-u? current-interval sixth)
+                           (and (eq-u? current-interval unison)
+                                (not (eq-u? previous-interval unison)))))))
+           (list (- current-index 1) (- (+ current-index stretti-index) 1)))
+      (assert (or (eq-u? last-note I)
+                  ;(eq-u? last-note III)
+                  ))
+      (assert (or (eq-u? (line-ref (- canon-length 2)) II)
+                  (eq-u? (line-ref (- canon-length 2)) VII)))
+      (if (= current-index canon-length)
+          line
+          (loop (+ current-index 1) (append line (list (amb V II VI III VII IV I))))))))
+
+(display canon)
+
+;(define (interval note1 note2)
+  
