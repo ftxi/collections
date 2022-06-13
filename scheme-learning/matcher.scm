@@ -70,7 +70,7 @@
                   (let ((ans (instantiate
                                  (skeleton-of (car rules))
                                dict)))
-                    (and ans (shows "use " (caar rules) " => " (cadar rules) " on " exp " gets " ans))
+                    (and ans (shows "use " (caar rules) " => " (cadar rules) " on " exp " , get " ans))
                     (if ans
                         (simplify-exp ans (cons exp used))
                         (scan (cdr rules))))))))
@@ -84,6 +84,32 @@
                        exp))))
   (define (initial-simplify-exp exp)
     (simplify-exp exp '()))
+  initial-simplify-exp)
+
+(define (simple-simplifier the-rules)
+  (define (simplify-exp exp)
+    (define (try-rules exp)
+      (define (scan rules)
+        (if (null? rules)
+            exp
+            (let ((dict (match (pattern-of (car rules))
+                          exp
+                          '())))
+              (if (eq? dict 'failed)
+                  (scan (cdr rules))
+                  (let ((ans (instantiate
+                                 (skeleton-of (car rules))
+                               dict)))
+                    (and ans (shows "use " (caar rules) " => " (cadar rules) " on " exp " , get " ans))
+                    (if ans
+                        ans
+                        (scan (cdr rules))))))))
+      (scan the-rules))
+    (try-rules (if (pair? exp)
+                   (map initial-simplify-exp exp)
+                   exp)))
+  (define (initial-simplify-exp exp)
+    (simplify-exp exp))
   initial-simplify-exp)
 
 (define (lookup s dict)
@@ -183,7 +209,7 @@
           `(and ,b (and ,a ,c))))
     ((or (? a) (or (? b) (? c)))
      (and (logic-symbol-less? b a)
-          `(or ,b (and ,a ,c))))
+          `(or ,b (or ,a ,c))))
     ;; definations
     ((implies (? a) (? b))
      `(or (not ,a) ,b))
@@ -197,27 +223,49 @@
      `(and (not ,a) (not ,b)))
     ((not (not (? p)))
      p)
-    ;; logical
+    ;; logical identity
     ((and (? p) (not (? p)))
-     #f)
+     'false)
+    ((and (? p) (and (not (? p)) (? q)))
+     'false)
     ((or (? p) (not (? p)))
-     #t)
-    ((and (? p) #t)
+     'true)
+    ((or (? p) (or (not (? p)) (? q)))
+     q)
+    ((and (? p) true)
      p)
-    ((and (? p) #f)
-     #f)
-    ((or (? p) #t)
-     #t)
-    ((or (? p) #f)
-     #f)
-    ((and #t (? p))
+    ((and (? p) false)
+     'false)
+    ((or (? p) true)
+     'true)
+    ((or (? p) false)
+     'false)
+    ((and true (? p))
      p)
-    ((and #f (? p))
-     #f)
-    ((or #t (? p))
-     #t)
-    ((or #f (? p))
+    ((and false (? p))
+     'false)
+    ((or true (? p))
+     'true)
+    ((or false (? p))
      p)))
+
+(define de-morgan-rules
+  '(((and (? a) (or (? b) (? c)))
+     `(or (and ,a ,b) (and ,a ,c)))
+    ((or (? a) (and (? b) (? c)))
+     `(and (or ,a ,b) (or ,a ,c)))))
+
+(define loopsimp
+  (simple-simplifier '(((foo (? a) (? b))
+                 `(foo ,b ,a)))))
 
 (define lsimp
   (simplifier logic-rules))
+
+(define dsimp
+  (simple-simplifier de-morgan-rules))
+
+(define (nsimp x)
+  (lsimp (dsimp (lsimp x))))
+
+;(lsimp '(and b a))
